@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Wind without shaders — demo</title>
+  <!-- MapLibre GL JS: no access token required -->
+  <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <style>
+    html, body { margin: 0; height: 100%; background: #0b0d10; }
+    #map { position: absolute; inset: 0; }
+    .credit {
+      position: absolute; left: 10px; bottom: 8px; z-index: 2;
+      font: 11px/1.35 system-ui, sans-serif; color: #a8b0ba;
+      background: rgba(10,12,16,.55); padding: 4px 8px; border-radius: 6px;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div class="credit">Basemap: OpenFreeMap · Wind technique demo (personal) · Production adopter: firemap.live</div>
+
+  <!--
+    Wind layer boot only — extracted from FireMap index.html wind module block.
+    No script-test, us-fwi, GDACS, Mapbox tokens, or product chrome.
+    MapLibre preferred (no token). Particle sim is CPU canvas over the map.
+  -->
+  <script type="module">
+    const map = new maplibregl.Map({
+      container: 'map',
+      style: 'https://tiles.openfreemap.org/styles/dark',
+      center: [-119.7, 46.2],
+      zoom: 4.2,
+      pitch: 0,
+      attributionControl: true
+    });
+    map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
+    // Expose for the UI resolver path used in the original boot.
+    window.map = map;
+
+    map.on('load', async () => {
+      try {
+        const WIND_V = '20260907a';
+        const [core, ui] = await Promise.all([
+          import(`./js/wind-particles-cpu.js?v=${WIND_V}`),
+          import(`./js/wind-ui.js?v=${WIND_V}`)
+        ]);
+
+        // Local demo uses sample-data/; otherwise prefer production GFS frames
+        // hosted by firemap.live (production adopter of this technique).
+        const HOST = location.hostname;
+        const WIND_BASE =
+          /^(localhost|127\.0\.0\.1|\[::1\])$/.test(HOST) ? './sample-data/gfs/'
+          : /^(www\.)?firemap\.live$/.test(HOST)           ? '/data/wind/gfs/'
+          :                                  'https://firemap.live/data/wind/gfs/';
+
+        const MANIFEST = WIND_BASE + 'manifest.json';
+        const man = await core.loadWindManifest(MANIFEST);
+        const layer = await core.WindParticlesCPU.fromManifest(map, MANIFEST, {
+          // Manifest may advertise +/-50 while pixels encode +/-40.
+          // Override keeps speeds correct until ETL bounds are fixed.
+          uRange: [-40, 40], vRange: [-40, 40]
+        });
+        window.__cpu = layer;
+        window.__ui = ui.mountWindUI(map, layer, man, {
+          loadManifest: core.loadWindManifest,
+          hint: false
+        });
+      } catch (e) {
+        console.warn('[wind] layer failed to start:', e.message);
+      }
+    });
+  </script>
+</body>
+</html>
