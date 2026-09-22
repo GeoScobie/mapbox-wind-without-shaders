@@ -1,22 +1,10 @@
 # sample-data/gfs
 
-Optional local UV wind frames for `demo.html` when served from localhost.
+Three sample GFS 0.25° UV wind PNGs (10 m U/V) for the local demo.
 
-## Expected layout (TBD)
+- `manifest.json` — playlist (relative frame ids)
+- `20260922T12Z.png` / `T15Z` / `T18Z` — equirectangular R=u, G=v (±50 m/s encode)
 
-Add **2–4** encoded UV PNG frames plus a small `manifest.json` (same shape as production). Do **not** commit a full GFS archive.
+**The demo only loads these local files.** Bring your own UV PNGs + manifest for other hours; do not point the demo at firemap.live (or any third-party CDN) unless you operate that host.
 
-```
-sample-data/gfs/
-  README.md          # this file
-  manifest.json      # TBD
-  *.png              # TBD — a few frames only
-```
-
-## Production
-
-Live product frames (hourly ETL):  
-`https://firemap.live/data/wind/gfs/`  
-(`manifest.json` + PNG frames; CORS required for canvas `getImageData`).
-
-Until local sample frames exist, run the demo against that production base (non-localhost host) or drop a minimal manifest + PNGs here.
+Source model: NOAA GFS. Frames are static samples for OSS, not a live feed.
