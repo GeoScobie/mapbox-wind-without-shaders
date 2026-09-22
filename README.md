@@ -1,35 +1,48 @@
-# Wind on a Mapbox globe — without custom shaders
+# Mapbox Wind Without Shaders
 
-Drop-in CPU wind particles for **Mapbox GL JS**, including **globe** projection.
+CPU wind particles for **[Mapbox GL JS](https://docs.mapbox.com/mapbox-gl-js/)** — including **[Mapbox Globe](https://docs.mapbox.com/mapbox-gl-js/guides/globe/)** — without writing a custom WebGL shader layer.
 
-Built for [firemap.live](https://firemap.live) by [Rob Scobie](https://github.com/GeoScobie). This repo is a personal sandbox of the production technique — not the FireMap app.
+**Live demo in production:** [firemap.live](https://firemap.live) (turn on wind in the map UI).
 
-## Why Mapbox-specific
+Personal sandbox by [Rob Scobie](https://github.com/GeoScobie) of the technique used on FireMap — not the FireMap product itself.
 
-Particle wind is usually a WebGL custom layer. On MapLibre, custom layers get a `projectTile` GLSL prelude that is globe-correct.
+## Where it sits in the Mapbox stack
 
-**Mapbox does not give you that.** A hand-built matrix on a Mapbox globe was ~30% too wide in our probe. Markers still project correctly, because they use `map.project()`.
+| Mapbox piece | Role here |
+|--------------|-----------|
+| **Mapbox GL JS** | Host map (`mapboxgl.Map`) |
+| **Mapbox Globe** | Why this exists — globe custom-layer projection is the hard case |
+| **Mapbox styles** (`dark-v11`, Standard, etc.) | Basemap; any style works |
+| **`map.project()`** | How particles stay globe-correct (same path Markers use) |
+| **[`raster-particle`](https://docs.mapbox.com/mapbox-gl-js/example/raster-particle-layer/)** | Mapbox’s built-in GPU particles on **raster-array / MRT** tiles — great when you’re on that pipeline; we needed plain UV PNGs on our CDN instead |
+| **Mapbox Access Tokens** | You bring your own `pk.` — none are shipped in this repo |
+
+Optional: same JS also runs on MapLibre. **Mapbox is the intended target.**
+
+## The problem
+
+Particle wind is usually a WebGL **custom layer**. MapLibre custom layers get a `projectTile` GLSL prelude that is globe-correct.
+
+**Mapbox does not give you that.** A hand-built matrix on a Mapbox globe was ~30% too wide in our probe.
 
 So this layer:
 
-1. Advects particles on the CPU  
-2. Places them with **`map.project()`**  
+1. Advects on the CPU  
+2. Places with **`map.project()`**  
 3. Draws tadpoles on a fading canvas  
 
-That is the Mapbox-globe fix. Same module also runs on MapLibre, but **Mapbox is the intended host.**
+~400 sprites is cheap. Tens of thousands would not be — then prefer Mapbox `raster-particle` (raster-array) or a tile/render hook.
 
-~400 sprites is cheap. Tens of thousands would not be — then look at Mapbox `renderWorldCopies` / tile hooks or `raster-particle` on their raster-array path.
+## Drop into a Mapbox app
 
-## Use it in your Mapbox app
-
-### 1. Copy the JS
+### 1. Copy
 
 ```
 js/wind-particles-cpu.js
 js/wind-ui.js          # optional LIVE / forecast chrome
 ```
 
-### 2. Add Mapbox GL JS (you bring the token)
+### 2. Mapbox GL JS + your token
 
 ```html
 <script src="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.js"></script>
@@ -37,12 +50,10 @@ js/wind-ui.js          # optional LIVE / forecast chrome
 ```
 
 ```js
-mapboxgl.accessToken = 'pk.YOUR_TOKEN'; // from https://account.mapbox.com/
+mapboxgl.accessToken = 'pk.YOUR_TOKEN'; // https://account.mapbox.com/access-tokens/
 ```
 
-No token is shipped in this repo.
-
-### 3. Create a globe map and mount wind
+### 3. Globe map + wind
 
 ```js
 const map = new mapboxgl.Map({
@@ -58,7 +69,6 @@ map.on('load', async () => {
   const { mountWindUI } = await import('./js/wind-ui.js'); // optional
 
   const manifestUrl = 'https://firemap.live/data/wind/gfs/manifest.json';
-  // Or your own UV PNG playlist — see "Data" below.
 
   const manifest = await loadWindManifest(manifestUrl);
   const layer = await WindParticlesCPU.fromManifest(map, manifestUrl, {
@@ -70,45 +80,26 @@ map.on('load', async () => {
 });
 ```
 
-That is the whole integration: any `mapboxgl.Map` (globe or mercator).
-
-## Run this repo’s demo
+## Run this repo
 
 ```bash
-git clone https://github.com/GeoScobie/wind-without-shaders.git
-cd wind-without-shaders
+git clone https://github.com/GeoScobie/mapbox-wind-without-shaders.git
+cd mapbox-wind-without-shaders
 python3 -m http.server 8080
 ```
 
-Open [http://localhost:8080/demo.html](http://localhost:8080/demo.html), paste a Mapbox **public** token (or use `?access_token=pk.…`). Token is stored in `localStorage` on that browser only.
+Open [http://localhost:8080/demo.html](http://localhost:8080/demo.html) → paste a Mapbox public token (or `?access_token=pk.…`).
 
-Optional token-free MapLibre boot: `demo-maplibre.html` (compat check only).
+- **See it live:** [firemap.live](https://firemap.live)  
+- Token-free MapLibre check only: `demo-maplibre.html`
 
-## Data (UV PNGs)
+## Data
 
-NOAA GFS 0.25° 10 m U/V → one equirectangular PNG per forecast hour:
+NOAA GFS 0.25° 10 m U/V → equirectangular PNG per hour (R=u, G=v, B=mask, ±40 m/s). Manifest lists frames. Example playlist: `https://firemap.live/data/wind/gfs/`.
 
-| Channel | Meaning |
-|--------|---------|
-| R | u (east), 0–255 → ±40 m/s |
-| G | v (north), 0–255 → ±40 m/s |
-| B | valid mask (255 = data) |
+## Prior art
 
-`manifest.json` lists frames. Live example playlist: `https://firemap.live/data/wind/gfs/`. Put a few frames under `sample-data/gfs/` for fully offline demos.
-
-## Not a replacement for `raster-particle`
-
-Mapbox [`raster-particle`](https://docs.mapbox.com/mapbox-gl-js/example/raster-particle-layer/) is the right tool on their raster-array / MRT pipeline. This project is for **your own UV PNGs** on a Mapbox **globe**, when you need `map.project()` instead of a custom-layer matrix.
-
-Prior art: [mapbox/webgl-wind](https://github.com/mapbox/webgl-wind) (Agafonkin) — GPU, flat map.
-
-## Bugs we hit on Mapbox globe
-
-Documented in `js/wind-particles-cpu.js`:
-
-1. Mercator↔lat float error → stay in Mercator when advecting  
-2. `getBounds()` under globe → unproject a screen grid  
-3. Limb overdraw → thin spawns by foreshortening  
+[mapbox/webgl-wind](https://github.com/mapbox/webgl-wind) (Agafonkin) — GPU particles, flat map. Different trade.
 
 ## License
 
