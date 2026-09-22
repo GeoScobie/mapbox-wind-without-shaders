@@ -122,21 +122,8 @@
             import(`./js/wind-ui.js?v=${V}`)
           ]);
 
-          // Local sample frames if present; otherwise production UV playlist.
-          const local = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
-          const WIND_BASE = local
-            ? './sample-data/gfs/'
-            : 'https://firemap.live/data/wind/gfs/';
-          // Prefer local manifest when it exists; fall back to production.
-          let MANIFEST = WIND_BASE + 'manifest.json';
-          if (local) {
-            try {
-              const probe = await fetch(MANIFEST, { method: 'HEAD' });
-              if (!probe.ok) MANIFEST = 'https://firemap.live/data/wind/gfs/manifest.json';
-            } catch {
-              MANIFEST = 'https://firemap.live/data/wind/gfs/manifest.json';
-            }
-          }
+          // Bundled sample frames only — do not pull live wind from firemap.live.
+          const MANIFEST = './sample-data/gfs/manifest.json';
 
           const man = await core.loadWindManifest(MANIFEST);
           const layer = await core.WindParticlesCPU.fromManifest(map, MANIFEST, {
