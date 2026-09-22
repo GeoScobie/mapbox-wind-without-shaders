@@ -3,13 +3,33 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Wind on a Mapbox globe — demo</title>
-  <!-- MapLibre GL JS: no access token required -->
-  <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
-  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <title>Wind on a Mapbox globe</title>
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.css" rel="stylesheet" />
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.js"></script>
   <style>
     html, body { margin: 0; height: 100%; background: #0b0d10; }
     #map { position: absolute; inset: 0; }
+    #token-gate {
+      position: absolute; inset: 0; z-index: 3;
+      display: none; align-items: center; justify-content: center;
+      background: rgba(8,10,14,.92); color: #e8eaed;
+      font: 14px/1.45 system-ui, sans-serif; padding: 24px;
+    }
+    #token-gate.visible { display: flex; }
+    #token-gate .card {
+      max-width: 420px; background: #161a22; border: 1px solid #2a3140;
+      border-radius: 12px; padding: 20px 22px;
+    }
+    #token-gate input {
+      width: 100%; box-sizing: border-box; margin: 10px 0 12px;
+      padding: 10px 12px; border-radius: 8px; border: 1px solid #3a4356;
+      background: #0b0d10; color: #e8eaed; font: 13px ui-monospace, monospace;
+    }
+    #token-gate button {
+      background: #3bb2d0; color: #0b0d10; border: 0; border-radius: 8px;
+      padding: 8px 14px; font-weight: 600; cursor: pointer;
+    }
+    #token-gate a { color: #7dd3fc; }
     .credit {
       position: absolute; left: 10px; bottom: 8px; z-index: 2;
       font: 11px/1.35 system-ui, sans-serif; color: #a8b0ba;
@@ -20,58 +40,119 @@
 </head>
 <body>
   <div id="map"></div>
-  <div class="credit">Mapbox-globe wind technique (CPU + map.project) · demo basemap: OpenFreeMap · production: firemap.live on Mapbox</div>
+  <div class="credit">Mapbox globe · CPU wind via map.project() · production: firemap.live</div>
 
-  <!--
-    Wind layer boot only — extracted from FireMap index.html wind module block.
-    No script-test, us-fwi, GDACS, Mapbox tokens, or product chrome.
-    Token-free MapLibre basemap for the OSS demo only. Particle code is the Mapbox-globe path (CPU + map.project).
-  -->
+  <div id="token-gate" class="visible">
+    <div class="card">
+      <strong>Mapbox access token</strong>
+      <p style="margin:8px 0 0;opacity:.85">
+        This demo is Mapbox GL JS. Paste a public token from
+        <a href="https://account.mapbox.com/access-tokens/" target="_blank" rel="noopener">account.mapbox.com</a>
+        (we do not ship one). Or open
+        <code>?access_token=pk.…</code>
+      </p>
+      <input id="token-input" type="password" autocomplete="off" placeholder="pk.…" />
+      <button type="button" id="token-go">Start map</button>
+    </div>
+  </div>
+
   <script type="module">
-    const map = new maplibregl.Map({
-      container: 'map',
-      style: 'https://tiles.openfreemap.org/styles/dark',
-      center: [-119.7, 46.2],
-      zoom: 4.2,
-      pitch: 0,
-      attributionControl: true
-    });
-    map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
-    // Expose for the UI resolver path used in the original boot.
-    window.map = map;
+    const qs = new URLSearchParams(location.search);
+    const stored = localStorage.getItem('mapbox_access_token') || '';
+    let token = qs.get('access_token') || qs.get('token') || stored;
 
-    map.on('load', async () => {
-      try {
-        const WIND_V = '20260907a';
-        const [core, ui] = await Promise.all([
-          import(`./js/wind-particles-cpu.js?v=${WIND_V}`),
-          import(`./js/wind-ui.js?v=${WIND_V}`)
-        ]);
+    const gate = document.getElementById('token-gate');
+    const input = document.getElementById('token-input');
+    const go = document.getElementById('token-go');
 
-        // Local demo uses sample-data/; otherwise prefer production GFS frames
-        // hosted by firemap.live (production adopter of this technique).
-        const HOST = location.hostname;
-        const WIND_BASE =
-          /^(localhost|127\.0\.0\.1|\[::1\])$/.test(HOST) ? './sample-data/gfs/'
-          : /^(www\.)?firemap\.live$/.test(HOST)           ? '/data/wind/gfs/'
-          :                                  'https://firemap.live/data/wind/gfs/';
+    function ready(t) {
+      token = (t || '').trim();
+      if (!token.startsWith('pk.') && !token.startsWith('sk.')) return false;
+      localStorage.setItem('mapbox_access_token', token);
+      gate.classList.remove('visible');
+      boot(token);
+      return true;
+    }
 
-        const MANIFEST = WIND_BASE + 'manifest.json';
-        const man = await core.loadWindManifest(MANIFEST);
-        const layer = await core.WindParticlesCPU.fromManifest(map, MANIFEST, {
-          // Manifest may advertise +/-50 while pixels encode +/-40.
-          // Override keeps speeds correct until ETL bounds are fixed.
-          uRange: [-40, 40], vRange: [-40, 40]
-        });
-        window.__cpu = layer;
-        window.__ui = ui.mountWindUI(map, layer, man, {
-          loadManifest: core.loadWindManifest,
-          hint: false
-        });
-      } catch (e) {
-        console.warn('[wind] layer failed to start:', e.message);
-      }
-    });
+    if (token) {
+      ready(token);
+    } else {
+      go.addEventListener('click', () => {
+        if (!ready(input.value)) input.focus();
+      });
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') go.click();
+      });
+    }
+
+    async function boot(accessToken) {
+      mapboxgl.accessToken = accessToken;
+
+      const map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/dark-v11',
+        center: [-119.7, 46.2],
+        zoom: 3.6,
+        pitch: 0,
+        projection: 'globe',
+        attributionControl: true
+      });
+      map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-right');
+      window.map = map;
+
+      map.on('style.load', () => {
+        // Soft atmosphere helps the globe read as a globe.
+        try {
+          map.setFog({
+            color: 'rgb(20,24,32)',
+            'high-color': 'rgb(36,48,72)',
+            'horizon-blend': 0.04,
+            'space-color': 'rgb(8,10,14)',
+            'star-intensity': 0.35
+          });
+        } catch (_) { /* older GL JS */ }
+      });
+
+      map.on('load', async () => {
+        try {
+          const V = '20260922a';
+          const [core, ui] = await Promise.all([
+            import(`./js/wind-particles-cpu.js?v=${V}`),
+            import(`./js/wind-ui.js?v=${V}`)
+          ]);
+
+          // Local sample frames if present; otherwise production UV playlist.
+          const local = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+          const WIND_BASE = local
+            ? './sample-data/gfs/'
+            : 'https://firemap.live/data/wind/gfs/';
+          // Prefer local manifest when it exists; fall back to production.
+          let MANIFEST = WIND_BASE + 'manifest.json';
+          if (local) {
+            try {
+              const probe = await fetch(MANIFEST, { method: 'HEAD' });
+              if (!probe.ok) MANIFEST = 'https://firemap.live/data/wind/gfs/manifest.json';
+            } catch {
+              MANIFEST = 'https://firemap.live/data/wind/gfs/manifest.json';
+            }
+          }
+
+          const man = await core.loadWindManifest(MANIFEST);
+          const layer = await core.WindParticlesCPU.fromManifest(map, MANIFEST, {
+            uRange: [-40, 40],
+            vRange: [-40, 40]
+          });
+          window.__cpu = layer;
+          window.__ui = ui.mountWindUI(map, layer, man, {
+            loadManifest: core.loadWindManifest,
+            hint: false
+          });
+        } catch (e) {
+          console.warn('[wind] failed to start:', e);
+          alert('Wind layer failed: ' + (e && e.message ? e.message : e));
+        }
+      });
+    }
   </script>
 </body>
 </html>
