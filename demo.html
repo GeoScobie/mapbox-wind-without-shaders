@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Wind on a Mapbox globe</title>
+  <title>Mapbox Wind Without Shaders</title>
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.css" rel="stylesheet" />
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.js"></script>
   <style>
@@ -36,11 +36,12 @@
       background: rgba(10,12,16,.55); padding: 4px 8px; border-radius: 6px;
       pointer-events: none;
     }
+    .credit a { pointer-events: auto; }
   </style>
 </head>
 <body>
   <div id="map"></div>
-  <div class="credit">Mapbox globe · CPU wind via map.project() · production: firemap.live</div>
+  <div class="credit">Mapbox Wind Without Shaders · live: <a href="https://firemap.live" target="_blank" rel="noopener" style="color:#7dd3fc;pointer-events:auto">firemap.live</a> · CPU + map.project()</div>
 
   <div id="token-gate" class="visible">
     <div class="card">
