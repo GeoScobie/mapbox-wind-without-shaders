@@ -34,14 +34,7 @@
         import(`./js/wind-particles-cpu.js?v=${V}`),
         import(`./js/wind-ui.js?v=${V}`)
       ]);
-      let MANIFEST = './sample-data/gfs/manifest.json';
-      try {
-        if (!(await fetch(MANIFEST, { method: 'HEAD' })).ok) {
-          MANIFEST = 'https://firemap.live/data/wind/gfs/manifest.json';
-        }
-      } catch {
-        MANIFEST = 'https://firemap.live/data/wind/gfs/manifest.json';
-      }
+      const MANIFEST = './sample-data/gfs/manifest.json';
       const man = await core.loadWindManifest(MANIFEST);
       const layer = await core.WindParticlesCPU.fromManifest(map, MANIFEST, {
         uRange: [-40, 40], vRange: [-40, 40]
