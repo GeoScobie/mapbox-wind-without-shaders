@@ -37,7 +37,7 @@
       const MANIFEST = './sample-data/gfs/manifest.json';
       const man = await core.loadWindManifest(MANIFEST);
       const layer = await core.WindParticlesCPU.fromManifest(map, MANIFEST, {
-        uRange: [-40, 40], vRange: [-40, 40]
+        uRange: [-50, 50], vRange: [-50, 50]
       });
       ui.mountWindUI(map, layer, man, { loadManifest: core.loadWindManifest, hint: false });
     });
