@@ -1,17 +1,19 @@
 # CUT — what’s in this repo
 
-Personal GeoScobie sandbox for the **Mapbox-globe** CPU wind technique used on firemap.live. Not the FireMap app.
+Mapbox-globe CPU wind technique from firemap.live. Personal GeoScobie sandbox — not the FireMap product.
 
 ## In
 
-- `js/wind-particles-cpu.js` — CPU tadpoles via `map.project()` (Mapbox globe was the reason this exists)
-- `js/wind-ui.js` — LIVE / forecast controls
-- `demo.html` — token-free MapLibre boot for local OSS; same JS runs on Mapbox in production
-- `sample-data/gfs/` — optional few UV PNG frames + manifest (or hit firemap.live’s playlist)
+- `demo.html` — **default** Mapbox GL JS globe demo (you paste your own `pk.` token)
+- `js/wind-particles-cpu.js` — CPU tadpoles via `map.project()` (exists because Mapbox globe custom layers lack a projection prelude)
+- `js/wind-ui.js` — optional LIVE / forecast UI
+- `sample-data/gfs/` — optional local UV frames (else demo uses firemap.live playlist)
+- `demo-maplibre.html` — optional token-free MapLibre check only
 - `README.md`, `LICENSE` (MIT)
 
 ## Out
 
-- FireMap product chrome, other hazard layers, tokens, analytics, mobile shells
+- FireMap product UI / other hazard layers / analytics / mobile
+- A shipped Mapbox access token
 - Full GFS archive
-- The WebGL / `projectTile` tadpole variant (MapLibre-oriented) — different file, not shipped here
+- WebGL `projectTile` tadpole variant (MapLibre-oriented) — not this path
