@@ -68,7 +68,7 @@ map.on('load', async () => {
   const { loadWindManifest, WindParticlesCPU } = await import('./js/wind-particles-cpu.js');
   const { mountWindUI } = await import('./js/wind-ui.js'); // optional
 
-  const manifestUrl = 'https://firemap.live/data/wind/gfs/manifest.json';
+  const manifestUrl = './sample-data/gfs/manifest.json'; // or your own UV playlist
 
   const manifest = await loadWindManifest(manifestUrl);
   const layer = await WindParticlesCPU.fromManifest(map, manifestUrl, {
@@ -95,7 +95,11 @@ Open [http://localhost:8080/demo.html](http://localhost:8080/demo.html) → past
 
 ## Data
 
-NOAA GFS 0.25° 10 m U/V → equirectangular PNG per hour (R=u, G=v, B=mask, ±40 m/s). Manifest lists frames. Example playlist: `https://firemap.live/data/wind/gfs/`.
+This repo ships **three sample GFS 0.25° UV PNGs** under `sample-data/gfs/` (plus `manifest.json`). The demo loads **only those local files**.
+
+NOAA GFS 10 m U/V → equirectangular PNG (R=u, G=v, B=mask). Encoding in the sample manifest is ±50 m/s.
+
+For your own app, generate or host your own UV playlist — **do not point clients at firemap.live** for wind tiles; that host is the product demo, not a public CDN.
 
 ## Prior art
 
