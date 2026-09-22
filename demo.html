@@ -127,8 +127,8 @@
 
           const man = await core.loadWindManifest(MANIFEST);
           const layer = await core.WindParticlesCPU.fromManifest(map, MANIFEST, {
-            uRange: [-40, 40],
-            vRange: [-40, 40]
+            uRange: [-50, 50],
+            vRange: [-50, 50]
           });
           window.__cpu = layer;
           window.__ui = ui.mountWindUI(map, layer, man, {
