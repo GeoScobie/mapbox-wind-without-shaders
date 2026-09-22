@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Wind without shaders — demo</title>
+  <title>Wind on a Mapbox globe — demo</title>
   <!-- MapLibre GL JS: no access token required -->
   <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
@@ -20,12 +20,12 @@
 </head>
 <body>
   <div id="map"></div>
-  <div class="credit">Basemap: OpenFreeMap · Wind technique demo (personal) · Production adopter: firemap.live</div>
+  <div class="credit">Mapbox-globe wind technique (CPU + map.project) · demo basemap: OpenFreeMap · production: firemap.live on Mapbox</div>
 
   <!--
     Wind layer boot only — extracted from FireMap index.html wind module block.
     No script-test, us-fwi, GDACS, Mapbox tokens, or product chrome.
-    MapLibre preferred (no token). Particle sim is CPU canvas over the map.
+    Token-free MapLibre basemap for the OSS demo only. Particle code is the Mapbox-globe path (CPU + map.project).
   -->
   <script type="module">
     const map = new maplibregl.Map({
