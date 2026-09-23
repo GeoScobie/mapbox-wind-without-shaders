@@ -1,29 +1,17 @@
 # Mapbox Wind Without Shaders
 
-CPU wind particles for **[Mapbox GL JS](https://docs.mapbox.com/mapbox-gl-js/)** — including **[Mapbox Globe](https://docs.mapbox.com/mapbox-gl-js/guides/globe/)** — without writing a custom WebGL shader layer.
+For years I wondered why my favorite wind styling wasn’t available on Mapbox WebGL — especially on **[Mapbox Globe](https://docs.mapbox.com/mapbox-gl-js/guides/globe/)**. So I built it.
 
-**Live demo in production:** [firemap.live](https://firemap.live) (turn on wind in the map UI).
+The look is **tadpoles**: short living heads with fading trails that read as direction and speed without turning the map into a comet blur. (Same family of motion as streamlets or flow ticks, if “tadpoles” feels too cute.)
 
-Personal sandbox by [Rob Scobie](https://github.com/GeoScobie) of the technique used on FireMap — not the FireMap product itself.
+Under the hood it’s deliberately **not** a custom WebGL shader layer. Particles advect on the CPU, place with **`map.project()`** (the same path Markers use), and draw on a fading canvas so they stay globe-correct on **[Mapbox GL JS](https://docs.mapbox.com/mapbox-gl-js/)**.
 
-## Where it sits in the Mapbox stack
+**Live on [firemap.live](https://firemap.live)** — turn on wind in the map UI.  
+By [Rob Scobie](https://github.com/GeoScobie) ([GeoScobie](https://github.com/GeoScobie)).
 
-| Mapbox piece | Role here |
-|--------------|-----------|
-| **Mapbox GL JS** | Host map (`mapboxgl.Map`) |
-| **Mapbox Globe** | Why this exists — globe custom-layer projection is the hard case |
-| **Mapbox styles** (`outdoors-v12`, Standard, etc.) | Basemap; any style works |
-| **`map.project()`** | How particles stay globe-correct (same path Markers use) |
-| **[`raster-particle`](https://docs.mapbox.com/mapbox-gl-js/example/raster-particle-layer/)** | Mapbox’s built-in GPU particles on **raster-array / MRT** tiles — great when you’re on that pipeline; we needed plain UV PNGs on our CDN instead |
-| **Mapbox Access Tokens** | You bring your own `pk.` — none are shipped in this repo |
+## How it works
 
-Optional: same JS also runs on MapLibre. **Mapbox is the intended target.**
-
-## The problem
-
-Particle wind is usually a WebGL **custom layer**. MapLibre custom layers get a `projectTile` GLSL prelude that is globe-correct.
-
-**Mapbox does not give you that.** A hand-built matrix on a Mapbox globe was ~30% too wide in our probe.
+Particle wind is usually a WebGL custom layer. That path is awkward on Mapbox Globe when you only have plain UV PNGs and want particles that sit correctly on the sphere.
 
 So this layer:
 
@@ -31,7 +19,17 @@ So this layer:
 2. Places with **`map.project()`**  
 3. Draws tadpoles on a fading canvas  
 
-~400 sprites is cheap. Tens of thousands would not be — then prefer Mapbox `raster-particle` (raster-array) or a tile/render hook.
+A few hundred sprites is cheap. Tens of thousands would not be — then prefer Mapbox [`raster-particle`](https://docs.mapbox.com/mapbox-gl-js/example/raster-particle-layer/) (raster-array) if that pipeline fits you.
+
+| Mapbox piece | Role here |
+|--------------|-----------|
+| **Mapbox GL JS** | Host map (`mapboxgl.Map`) |
+| **Mapbox Globe** | Why this path exists |
+| **Mapbox styles** (`outdoors-v12`, Standard, …) | Basemap; any style works |
+| **`map.project()`** | Globe-correct particle placement |
+| **Mapbox Access Tokens** | You bring your own `pk.` — none are shipped |
+
+Optional: same JS also runs on MapLibre. **Mapbox is the intended target.**
 
 ## Drop into a Mapbox app
 
@@ -74,10 +72,6 @@ map.on('load', async () => {
     uRange: [-40, 40],
     vRange: [-40, 40]
   });
-
-  // Optional forecast / LIVE chrome:
-  // const { mountWindUI } = await import('./js/wind-ui.js');
-  // mountWindUI(map, layer, manifest, { loadManifest: loadWindManifest });
 });
 ```
 
@@ -91,8 +85,7 @@ python3 -m http.server 8081
 
 Open [http://localhost:8081/demo.html](http://localhost:8081/demo.html) → paste a Mapbox public token (or `?access_token=pk.…`).
 
-- **See it live:** [firemap.live](https://firemap.live)  
-- Token-free MapLibre check only: `demo-maplibre.html`
+Token-free MapLibre check only: `demo-maplibre.html`
 
 ## Data
 
@@ -100,11 +93,7 @@ This repo ships **three sample GFS 0.25° UV PNGs** under `sample-data/gfs/` (pl
 
 NOAA GFS 10 m U/V → equirectangular PNG (R=u, G=v, B=mask). Encoding in the sample manifest is ±50 m/s.
 
-For your own app, generate or host your own UV playlist — **do not point clients at firemap.live** for wind tiles; that host is the product demo, not a public CDN.
-
-## Prior art
-
-[mapbox/webgl-wind](https://github.com/mapbox/webgl-wind) (Agafonkin) — GPU particles, flat map. Different trade.
+For your own app, generate or host your own UV playlist.
 
 ## License
 
