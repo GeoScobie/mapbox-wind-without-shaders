@@ -7,41 +7,42 @@
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.css" rel="stylesheet" />
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.js"></script>
   <style>
-    html, body { margin: 0; height: 100%; background: #0b0d10; }
+    html, body { margin: 0; height: 100%; background: #e8eef4; }
     #map { position: absolute; inset: 0; }
     #token-gate {
       position: absolute; inset: 0; z-index: 3;
       display: none; align-items: center; justify-content: center;
-      background: rgba(8,10,14,.92); color: #e8eaed;
+      background: rgba(232,238,244,.92); color: #1a1f2a;
       font: 14px/1.45 system-ui, sans-serif; padding: 24px;
     }
     #token-gate.visible { display: flex; }
     #token-gate .card {
-      max-width: 420px; background: #161a22; border: 1px solid #2a3140;
+      max-width: 420px; background: #fff; border: 1px solid #c5ced9;
       border-radius: 12px; padding: 20px 22px;
+      box-shadow: 0 8px 28px rgba(20,30,50,.12);
     }
     #token-gate input {
       width: 100%; box-sizing: border-box; margin: 10px 0 12px;
-      padding: 10px 12px; border-radius: 8px; border: 1px solid #3a4356;
-      background: #0b0d10; color: #e8eaed; font: 13px ui-monospace, monospace;
+      padding: 10px 12px; border-radius: 8px; border: 1px solid #b8c2d0;
+      background: #f7f9fc; color: #1a1f2a; font: 13px ui-monospace, monospace;
     }
     #token-gate button {
       background: #3bb2d0; color: #0b0d10; border: 0; border-radius: 8px;
       padding: 8px 14px; font-weight: 600; cursor: pointer;
     }
-    #token-gate a { color: #7dd3fc; }
+    #token-gate a { color: #0369a1; }
     .credit {
       position: absolute; left: 10px; bottom: 8px; z-index: 2;
-      font: 11px/1.35 system-ui, sans-serif; color: #a8b0ba;
-      background: rgba(10,12,16,.55); padding: 4px 8px; border-radius: 6px;
+      font: 11px/1.35 system-ui, sans-serif; color: #334155;
+      background: rgba(255,255,255,.78); padding: 4px 8px; border-radius: 6px;
       pointer-events: none;
     }
-    .credit a { pointer-events: auto; }
+    .credit a { pointer-events: auto; color: #0369a1; }
   </style>
 </head>
 <body>
   <div id="map"></div>
-  <div class="credit">Mapbox Wind Without Shaders · live: <a href="https://firemap.live" target="_blank" rel="noopener" style="color:#7dd3fc;pointer-events:auto">firemap.live</a> · CPU + map.project()</div>
+  <div class="credit">Mapbox Wind Without Shaders · live: <a href="https://firemap.live" target="_blank" rel="noopener">firemap.live</a> · CPU + map.project()</div>
 
   <div id="token-gate" class="visible">
     <div class="card">
@@ -91,7 +92,7 @@
 
       const map = new mapboxgl.Map({
         container: 'map',
-        style: 'mapbox://styles/mapbox/dark-v11',
+        style: 'mapbox://styles/mapbox/outdoors-v12',
         center: [-119.7, 46.2],
         zoom: 3.6,
         pitch: 0,
@@ -102,39 +103,31 @@
       window.map = map;
 
       map.on('style.load', () => {
-        // Soft atmosphere helps the globe read as a globe.
         try {
           map.setFog({
-            color: 'rgb(20,24,32)',
-            'high-color': 'rgb(36,48,72)',
-            'horizon-blend': 0.04,
-            'space-color': 'rgb(8,10,14)',
-            'star-intensity': 0.35
+            color: 'rgb(186, 210, 235)',
+            'high-color': 'rgb(36, 92, 223)',
+            'horizon-blend': 0.02,
+            'space-color': 'rgb(11, 11, 25)',
+            'star-intensity': 0.6
           });
         } catch (_) { /* older GL JS */ }
       });
 
       map.on('load', async () => {
         try {
-          const V = '20260922a';
-          const [core, ui] = await Promise.all([
-            import(`./js/wind-particles-cpu.js?v=${V}`),
-            import(`./js/wind-ui.js?v=${V}`)
-          ]);
+          const V = '20260923a';
+          const core = await import(`./js/wind-particles-cpu.js?v=${V}`);
 
           // Bundled sample frames only — do not pull live wind from firemap.live.
           const MANIFEST = './sample-data/gfs/manifest.json';
 
-          const man = await core.loadWindManifest(MANIFEST);
+          await core.loadWindManifest(MANIFEST);
           const layer = await core.WindParticlesCPU.fromManifest(map, MANIFEST, {
             uRange: [-50, 50],
             vRange: [-50, 50]
           });
           window.__cpu = layer;
-          window.__ui = ui.mountWindUI(map, layer, man, {
-            loadManifest: core.loadWindManifest,
-            hint: false
-          });
         } catch (e) {
           console.warn('[wind] failed to start:', e);
           alert('Wind layer failed: ' + (e && e.message ? e.message : e));

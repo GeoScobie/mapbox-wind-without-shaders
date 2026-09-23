@@ -12,7 +12,7 @@ Personal sandbox by [Rob Scobie](https://github.com/GeoScobie) of the technique 
 |--------------|-----------|
 | **Mapbox GL JS** | Host map (`mapboxgl.Map`) |
 | **Mapbox Globe** | Why this exists — globe custom-layer projection is the hard case |
-| **Mapbox styles** (`dark-v11`, Standard, etc.) | Basemap; any style works |
+| **Mapbox styles** (`outdoors-v12`, Standard, etc.) | Basemap; any style works |
 | **`map.project()`** | How particles stay globe-correct (same path Markers use) |
 | **[`raster-particle`](https://docs.mapbox.com/mapbox-gl-js/example/raster-particle-layer/)** | Mapbox’s built-in GPU particles on **raster-array / MRT** tiles — great when you’re on that pipeline; we needed plain UV PNGs on our CDN instead |
 | **Mapbox Access Tokens** | You bring your own `pk.` — none are shipped in this repo |
@@ -39,7 +39,7 @@ So this layer:
 
 ```
 js/wind-particles-cpu.js
-js/wind-ui.js          # optional LIVE / forecast chrome
+js/wind-ui.js          # optional LIVE / forecast chrome (not used by demo.html)
 ```
 
 ### 2. Mapbox GL JS + your token
@@ -58,7 +58,7 @@ mapboxgl.accessToken = 'pk.YOUR_TOKEN'; // https://account.mapbox.com/access-tok
 ```js
 const map = new mapboxgl.Map({
   container: 'map',
-  style: 'mapbox://styles/mapbox/dark-v11',
+  style: 'mapbox://styles/mapbox/outdoors-v12',
   center: [-119.7, 46.2],
   zoom: 3.6,
   projection: 'globe'
@@ -66,17 +66,18 @@ const map = new mapboxgl.Map({
 
 map.on('load', async () => {
   const { loadWindManifest, WindParticlesCPU } = await import('./js/wind-particles-cpu.js');
-  const { mountWindUI } = await import('./js/wind-ui.js'); // optional
 
   const manifestUrl = './sample-data/gfs/manifest.json'; // or your own UV playlist
 
-  const manifest = await loadWindManifest(manifestUrl);
-  const layer = await WindParticlesCPU.fromManifest(map, manifestUrl, {
+  await loadWindManifest(manifestUrl);
+  await WindParticlesCPU.fromManifest(map, manifestUrl, {
     uRange: [-40, 40],
     vRange: [-40, 40]
   });
 
-  mountWindUI(map, layer, manifest, { loadManifest: loadWindManifest });
+  // Optional forecast / LIVE chrome:
+  // const { mountWindUI } = await import('./js/wind-ui.js');
+  // mountWindUI(map, layer, manifest, { loadManifest: loadWindManifest });
 });
 ```
 
@@ -85,10 +86,10 @@ map.on('load', async () => {
 ```bash
 git clone https://github.com/GeoScobie/mapbox-wind-without-shaders.git
 cd mapbox-wind-without-shaders
-python3 -m http.server 8080
+python3 -m http.server 8081
 ```
 
-Open [http://localhost:8080/demo.html](http://localhost:8080/demo.html) → paste a Mapbox public token (or `?access_token=pk.…`).
+Open [http://localhost:8081/demo.html](http://localhost:8081/demo.html) → paste a Mapbox public token (or `?access_token=pk.…`).
 
 - **See it live:** [firemap.live](https://firemap.live)  
 - Token-free MapLibre check only: `demo-maplibre.html`
